@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import sys,os
 import gzip
 import struct
@@ -11,7 +11,6 @@ ofp = open(outfile,'wb')
 # for line in gzip.open(infile):
 #     if line[0] == 69: 
 #         print( line )
-
 
 def next_fami( infile ):
     lines = list()
@@ -181,11 +180,32 @@ if True:
                 buffer = struct.pack(f"HH",start,stop)
                 ofp.write(buffer)
 
-        if True: # S
-            tmp = readindex 
+        if True: # def S function
+            def next_set_lines( setlines ):
+                flag_header = True
+                lines = list()
+                tmp_count = 0
+                for line in setlines:
+                    if flag_header:
+                        line_num = float(line[9:15])
+                        flag_header = False
+                        lines = list()
+                        lines.append(line)
+                    else:
+                        tmp_count += 1
+                        if tmp_count == line_num:
+                            lines.append(line)
+                            yield lines
+                            flag_header = True
+                            tmp_count = 0
+                            continue
+                        else:
+                            lines.append(line)
+        if True: # test
+            tmp = readindex
             while True:
                 tmp += 1
-                if lines[readindex][0] == 83:
+                if lines[tmp][0] == 83:
                     pass
                 else:
                     tmp -= 1
@@ -196,26 +216,49 @@ if True:
             for this in next_set_lines( setlines ):
                 fline = this[0]
                 slines = this[1:]
+                setnum = None 
+                nlines = int( fline[9:15] )
+                nconfs = int( fline[16:19] )
+                broken = int( fline[20:21] )
+                # assert broken == 0
+                # broken = False
+                hydrogens = int( fline[22:23] )
+                # assert hydrogens == 0
+                # hydrogens = False
+                omega_energy = float( fline[24:35] )
+
+                buffer = struct.pack(f"H??f",nconfs,broken,hydrogens,omega_energy)
+                ofp.write(buffer)
+
+                for line in slines:
+                    nconf = int(line[15:17])
+                    # print("nconf",nconf)
+                    for _ in range(nconf):
+                        conf_number = int(line[7*_+18:7*_+24])
+                        buffer = struct.pack(f"H",conf_number)
+                        ofp.write(buffer)
 
                 #012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
                 #S      1      1   7 0 0      +0.000
                 #S      1      1 7      1     34     48     49    202    203    204
                 #S %6d %6d %3d %1d %1d %+11.3f\n
                 #S %6d %6d %1d %6d %6d %6d %6d %6d %6d %6d %6d\n 
-                
-                setnum = None 
-                #lines 
-                #confs_total 
-                broken 
-                hydrogens 
-                omega_energy
-                
-
-
-            
             pass
 
         if True: # D
+            readindex += 1
+            dheader_line = lines[readindex]
+            
+
+            #012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
+            #D %6d %6d %6d %3d %3d %3d\n
+            #D %3d %2d %+9.4f %+9.4f %+9.4f\n
+            #D      1      1      3   5   1   5
+            #D      1  7   -2.3383   -0.3063   +0.8216
+            #D      2  7   -3.2398   -1.0436   +0.6238
+            #D      3  7   -1.4261   -0.4810   -0.1858
+            #D      4  7   -2.9312   -1.7105   -0.5142
+            #D      5  7   -1.8143   -1.3433   -0.9957 
             pass
         if True: # E
             pass
