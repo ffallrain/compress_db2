@@ -6,11 +6,7 @@ import struct
 infile = sys.argv[1]
 outfile = sys.argv[2]
 
-ofp = open(outfile,'wb') 
-
-# for line in gzip.open(infile):
-#     if line[0] == 69: 
-#         print( line )
+ofp = gzip.open(outfile, mode='wb', compresslevel=9)
 
 def next_fami( infile ):
     lines = list()
@@ -124,7 +120,6 @@ if True:
                 buffer = struct.pack(f"HH2s",atom1,atom2,btype)
                 ofp.write(buffer)
 
-            pass
         if True: # X
             for _ in range(nxyz):
                 readindex += 1
@@ -143,8 +138,6 @@ if True:
                 buffer = struct.pack(f"HHfff",atom,confnum,x,y,z)
                 ofp.write(buffer)
 
-            pass
-
         if True: # R
             for _ in range(nrigid):
                 readindex += 1
@@ -162,13 +155,10 @@ if True:
                 buffer = struct.pack(f"Hfff",co,x,y,z)
                 ofp.write(buffer)
 
-            pass
-
         if True: # C
             for _ in range(nconf):
                 readindex += 1
                 line = lines[readindex] 
-
 
                 #012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
                 #C %6d %9d %9d\n
@@ -232,7 +222,6 @@ if True:
 
                 for line in slines:
                     nconf = int(line[15:17])
-                    # print("nconf",nconf)
                     for _ in range(nconf):
                         conf_number = int(line[7*_+18:7*_+24])
                         buffer = struct.pack(f"H",conf_number)
@@ -243,23 +232,48 @@ if True:
                 #S      1      1 7      1     34     48     49    202    203    204
                 #S %6d %6d %3d %1d %1d %+11.3f\n
                 #S %6d %6d %1d %6d %6d %6d %6d %6d %6d %6d %6d\n 
-            pass
 
         if True: # D
             readindex += 1
-            dheader_line = lines[readindex]
-            
+            cluindex = 0
+            lineindex = 0
+            oldnlines = 0
 
-            #012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
-            #D %6d %6d %6d %3d %3d %3d\n
-            #D %3d %2d %+9.4f %+9.4f %+9.4f\n
-            #D      1      1      3   5   1   5
-            #D      1  7   -2.3383   -0.3063   +0.8216
-            #D      2  7   -3.2398   -1.0436   +0.6238
-            #D      3  7   -1.4261   -0.4810   -0.1858
-            #D      4  7   -2.9312   -1.7105   -0.5142
-            #D      5  7   -1.8143   -1.3433   -0.9957 
-            pass
+            while True:
+                line = lines[readindex]
+                nlines = int(line[31:34])
+                sstart = int(line[9:15] )
+                send   = int(line[16:22] )
+                matchstart = int(line[23:26] )
+                matchend   = int(line[27:30] )
+                buffer = struct.pack(f"HHHHH",nlines,sstart,send,matchstart,matchend)
+                ofp.write(buffer)
+                cluindex += 1
+                
+                for _ in range( matchstart ):
+                    lineindex += 1
+                    readindex += 1
+                    line = lines[readindex] 
+                    color = int( line[9:11] )
+                    x = float( line[12:21] )
+                    y = float( line[22:31] )
+                    z = float( line[32:41] )
+
+                    buffer = struct.pack(f"Hfff", color,x,y,z )
+                    ofp.write(buffer)
+                    oldnlines = nlines 
+
+                    #012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
+                    #D %6d %6d %6d %3d %3d %3d\n
+                    #D %3d %2d %+9.4f %+9.4f %+9.4f\n
+                    #D      1      1      3   5   1   5
+                    #D      1  7   -2.3383   -0.3063   +0.8216
+
+                if lines[ readindex +1 ][0] != 68:
+                    break
+                else:
+                    readindex += 1
+
         if True: # E
             pass
 
