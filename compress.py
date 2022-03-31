@@ -1,7 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env pypy3
 import sys,os
 import gzip
 import struct
+from format import *
 
 infile = sys.argv[1]
 outfile = sys.argv[2]
@@ -77,9 +78,13 @@ if True:
             
             #M %77s\n
 
+            buffer = struct.pack(fshort,smilelen)
+            ofp.write(buffer)
             
-            buffer = struct.pack(f"I?BBHHHH?Bfffff{smilelen}s??", zinc_index, codex, atoms,bonds,nxyz,nconf,nset,nrigid,nmline,nclu, charge, polar, apolar, tsol, surf,smile,m4,m5 )
+            buffer = struct.pack(fM, zinc_index, codex, atoms,bonds,nxyz,nconf,nset,nrigid,nmline,nclu, charge, polar, apolar, tsol, surf,m4,m5 )
+            ofp.write(buffer)
 
+            buffer = struct.pack(f"{smilelen}"+fstring , smile )
             ofp.write(buffer)
 
         if True: # A
@@ -96,12 +101,12 @@ if True:
                 atomtype = line[11:16].decode("ascii").encode("ascii")
                 dt     = int(   line[17:19] )
                 co     = int(   line[20:22] )
-                charge = float( line[23:32] )
-                polar  = float( line[33:43] )
-                apolar = float( line[44:54] )
-                total  = float( line[55:65] )
-                surf   = float( line[66:] )
-                buffer = struct.pack(f"4s5sHHfffff",atomname,atomtype,dt,co,charge,polar,apolar,total,surf)
+                charge = round( float( line[23:32] ) * 100 )
+                polar  = round( float( line[33:43] ) * 100 )
+                apolar = round( float( line[44:54] ) * 100 )
+                total  = round( float( line[55:65] ) * 100 )
+                surf   = round( float( line[66:] )   * 100 )
+                buffer = struct.pack(fA,atomname,atomtype,dt,co,charge,polar,apolar,total,surf)
                 ofp.write(buffer)
 
         if True: # B
@@ -116,8 +121,9 @@ if True:
                 index = None
                 atom1 = int(line[6:9])
                 atom2 = int(line[10:13])
-                btype = line[14:16].decode("ascii").encode("ascii")
-                buffer = struct.pack(f"HH2s",atom1,atom2,btype)
+                btype = fbtype_code[ line[14:16].decode("ascii") ]
+
+                buffer = struct.pack(fB,atom1,atom2,btype)
                 ofp.write(buffer)
 
         if True: # X
@@ -135,7 +141,7 @@ if True:
                 x  = float( line[23:32] )
                 y = float( line[33:42] )
                 z = float( line[43:] )
-                buffer = struct.pack(f"HHfff",atom,confnum,x,y,z)
+                buffer = struct.pack(fX,atom,confnum,x,y,z)
                 ofp.write(buffer)
 
         if True: # R
@@ -144,7 +150,7 @@ if True:
                 line = lines[readindex] 
 
                 #012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
-                #R %3d %2d %+9.4f %+9.4f %+9.4f\n
+                #R %6d %2d %+9.4f %+9.4f %+9.4f\n
                 #R      1  7   -0.2954   +1.4879   +0.2588
                 index = None
                 co = int( line[9:11] )
@@ -152,7 +158,7 @@ if True:
                 y = float( line[22:31] )
                 z = float( line[32:] )
 
-                buffer = struct.pack(f"Hfff",co,x,y,z)
+                buffer = struct.pack(fR,co,x,y,z)
                 ofp.write(buffer)
 
         if True: # C
@@ -167,7 +173,7 @@ if True:
                 index = None
                 start = int(line[9:18])
                 stop  = int(line[19:])
-                buffer = struct.pack(f"HH",start,stop)
+                buffer = struct.pack(fC,start,stop)
                 ofp.write(buffer)
 
         if True: # def S function
@@ -217,14 +223,14 @@ if True:
                 # hydrogens = False
                 omega_energy = float( fline[24:35] )
 
-                buffer = struct.pack(f"H??f",nconfs,broken,hydrogens,omega_energy)
+                buffer = struct.pack(fS1,nconfs,broken,hydrogens,omega_energy)
                 ofp.write(buffer)
 
                 for line in slines:
                     nconf = int(line[15:17])
                     for _ in range(nconf):
                         conf_number = int(line[7*_+18:7*_+24])
-                        buffer = struct.pack(f"H",conf_number)
+                        buffer = struct.pack(fshort,conf_number)
                         ofp.write(buffer)
 
                 #012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
@@ -246,7 +252,7 @@ if True:
                 send   = int(line[16:22] )
                 matchstart = int(line[23:26] )
                 matchend   = int(line[27:30] )
-                buffer = struct.pack(f"HHHHH",nlines,sstart,send,matchstart,matchend)
+                buffer = struct.pack(fD1,nlines,sstart,send,matchstart,matchend)
                 ofp.write(buffer)
                 cluindex += 1
                 
@@ -259,13 +265,13 @@ if True:
                     y = float( line[22:31] )
                     z = float( line[32:41] )
 
-                    buffer = struct.pack(f"Hfff", color,x,y,z )
+                    buffer = struct.pack(fD2, color,x,y,z )
                     ofp.write(buffer)
                     oldnlines = nlines 
 
                     #012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
                     #D %6d %6d %6d %3d %3d %3d\n
-                    #D %3d %2d %+9.4f %+9.4f %+9.4f\n
+                    #D %6d %2d %+9.4f %+9.4f %+9.4f\n
                     #D      1      1      3   5   1   5
                     #D      1  7   -2.3383   -0.3063   +0.8216
 
